@@ -1,9 +1,9 @@
 ## Midas 모델 사용법
 1. 깃허브 클론 다운받기
-
+'''
     git clone https://github.com/isl-org/MiDaS.git
     cd MiDaS
-
+'''
 2. 모델 다운로드
 
    1) <https://huggingface.co/Xiaodong/dpt_large_384/tree/8304ab53df28f5229c5e4665d6c5042d0eb4a088> 링크에 접속
