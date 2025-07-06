@@ -36,5 +36,5 @@
     python run.py --model_type dpt_large_384 --input_path input --output_path output
 ```
 
-   - MiDas/output/ 폴더에 예측된 깊이 이미지 생성완료.
+   -> MiDas/output/ 폴더에 예측된 깊이 이미지 생성완료.
    
