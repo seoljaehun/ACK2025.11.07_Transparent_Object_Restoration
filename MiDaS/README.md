@@ -25,6 +25,8 @@
 
 7. MDE 실행
 
+   VScode 터미널에 다음과 같은 명령어 입력
+```
     python run.py --model_type dpt_large_384 --input_path input --output_path output
-
+```
    
