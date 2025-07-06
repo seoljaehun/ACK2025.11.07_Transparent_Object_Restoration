@@ -6,11 +6,13 @@
     git clone https://github.com/isl-org/MiDaS.git
     cd MiDaS
 ```
+
 2. 모델 다운로드
 
    1)  해당 링크에 접속 -> <https://huggingface.co/Xiaodong/dpt_large_384/tree/8304ab53df28f5229c5e4665d6c5042d0eb4a088> 
    2)  "dpt_large_384.pt" 파일 다운로드
    3)  다운로드 받은 파일을 Midas/weights/ 폴더로 옮기기
+
 
 3. 패키지 설치
 
@@ -19,6 +21,7 @@
     pip install torch torchvision timm opencv-python matplotlib
     pip install imutils
 ```
+
 5. 이미지 넣기
 
    - MiDas/input/ 폴더에 원하는 이미지 넣기
@@ -27,6 +30,7 @@
   
    - 파일명은 영어로 설정 (한글은 오류 발생할 수 있음)
    
+
 
 7. MDE 실행
 
