@@ -7,15 +7,11 @@
     cd MiDaS
 ```
 
-
 2. 모델 다운로드
 
    1)  해당 링크에 접속 -> <https://huggingface.co/Xiaodong/dpt_large_384/tree/8304ab53df28f5229c5e4665d6c5042d0eb4a088> 
    2)  "dpt_large_384.pt" 파일 다운로드
    3)  다운로드 받은 파일을 Midas/weights/ 폴더로 옮기기
-
-
-
 
 3. 패키지 설치
 
@@ -25,7 +21,6 @@
     pip install imutils
 ```
 
-
 4. 이미지 넣기
 
    - MiDas/input/ 폴더에 원하는 이미지 넣기
@@ -34,9 +29,6 @@
   
    - 파일명은 영어로 설정 (한글은 오류 발생할 수 있음)
 
-
-
-
 5. MDE 실행
 
    VScode 터미널에 다음과 같은 명령어 입력:
@@ -44,5 +36,5 @@
     python run.py --model_type dpt_large_384 --input_path input --output_path output
 ```
 
-   - output/ 폴더에 예측된 깊이 이미지(.png)가 생성됩니다.
+   - MiDas/output/ 폴더에 예측된 깊이 이미지 생성완료.
    
