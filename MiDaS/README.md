@@ -1,5 +1,6 @@
 ## Midas 모델 사용법
 1. 깃허브 클론 다운받기
+
    VScode 터미널에 다음과 같은 명령어 입력
 ```
     git clone https://github.com/isl-org/MiDaS.git
@@ -12,6 +13,7 @@
    3)  다운로드 받은 파일을 Midas -> weights 폴더로 옮기기
 
 3. 패키지 설치
+
    VScode 터미널에 다음과 같은 명령어 입력
 ```
     pip install torch torchvision timm opencv-python matplotlib
