@@ -28,7 +28,7 @@ def abs_rel(gt, pred):
     return np.mean(np.abs(gt - pred) / gt_safe)
 
 # δ accuracy: 상대 오차 허용 기준 내 비율 (클수록 좋음)
-def delta_accuracy(gt, pred, threshold=1.15): # 기준값 = 1.15
+def delta_accuracy(gt, pred, threshold=1.25): # 기준값 = 1.25
     ratio = np.maximum(gt / pred, pred / gt)
     return np.mean(ratio < threshold)
 
@@ -63,15 +63,30 @@ for fname in sorted(os.listdir(gt_dir)):
         target_size = (mask.shape[1], mask.shape[0])
         gt = cv2.resize(gt, target_size, interpolation=cv2.INTER_LINEAR)
         
+        # 전체 영역에서 유효값 필터링
+        valid_all = (gt > 0) & (opaque > 0) & (transp > 0)
+        g_all = gt[valid_all]
+        p_opaque_all = opaque[valid_all]
+        p_transp_all = transp[valid_all]
+
+        # Scale + Shift 정규화
+        # 최소 제곱법으로 scale (s), shift (t) 계산,, 불투명 이미지 기준으로 계산
+        A = np.vstack([p_opaque_all, np.ones_like(p_opaque_all)]).T
+        s, t = np.linalg.lstsq(A, g_all, rcond=None)[0]
+        
+        # 예측값 보정
+        p_opaque_aligned = np.clip(s * opaque + t, 0, None)
+        p_transp_aligned = np.clip(s * transp + t, 0, None)
+
         # Mask 이미지에서 이진 분류, 투명 물체 부분만 1값 나머지 0값
         binary_mask = (mask == 255).astype(np.uint8)
         
         # 각 이미지에 Mask 적용
         gt_masked = gt[binary_mask == 1]
-        opaque_masked = opaque[binary_mask == 1]
-        transp_masked = transp[binary_mask == 1]
+        opaque_masked = p_opaque_aligned[binary_mask == 1]
+        transp_masked = p_transp_aligned[binary_mask == 1]
         
-        # 유효한 값만 필터링
+        # 마스킹 영역에서 유효한 값만 필터링
         valid = (gt_masked > 0) & (opaque_masked > 0) & (transp_masked > 0)
         if np.sum(valid) == 0:
             continue
@@ -79,26 +94,17 @@ for fname in sorted(os.listdir(gt_dir)):
         p_opaque = opaque_masked[valid]
         p_transp = transp_masked[valid]
         
-        # Scale + Shift 정규화
-        # 최소 제곱법으로 scale (s), shift (t) 계산,, 불투명 이미지 기준으로 계산
-        A = np.vstack([p_opaque, np.ones_like(p_opaque)]).T
-        s, t = np.linalg.lstsq(A, g, rcond=None)[0]
-        
-        # 예측값 보정
-        p_opaque_aligned = np.clip(s * p_opaque + t, 0, None)
-        p_transp_aligned = np.clip(s * p_transp + t, 0, None)
-        
         # 평가지표 계산 후 누적 변수에 추가
         # 불투명 이미지 평가지표
-        sum_opaque['rmse'] += rmse(g, p_opaque_aligned)
-        sum_opaque['mae'] += mae(g, p_opaque_aligned)
-        sum_opaque['rel'] += abs_rel(g, p_opaque_aligned)
-        sum_opaque['delta'] += delta_accuracy(g, p_opaque_aligned)
+        sum_opaque['rmse'] += rmse(g, p_opaque)
+        sum_opaque['mae'] += mae(g, p_opaque)
+        sum_opaque['rel'] += abs_rel(g, p_opaque)
+        sum_opaque['delta'] += delta_accuracy(g, p_opaque)
         # 투명 이미지 평가지표
-        sum_transp['rmse'] += rmse(g, p_transp_aligned)
-        sum_transp['mae'] += mae(g, p_transp_aligned)
-        sum_transp['rel'] += abs_rel(g, p_transp_aligned)
-        sum_transp['delta'] += delta_accuracy(g, p_transp_aligned)
+        sum_transp['rmse'] += rmse(g, p_transp)
+        sum_transp['mae'] += mae(g, p_transp)
+        sum_transp['rel'] += abs_rel(g, p_transp)
+        sum_transp['delta'] += delta_accuracy(g, p_transp)
         
         # 횟수 카운터
         valid_count += 1
@@ -118,4 +124,4 @@ if valid_count > 0:
     for k in sum_transp:
         print(f"{k.upper()} (투명):   {sum_transp[k] / valid_count:.4f}")
 else:
-    print("❌ 유효한 이미지가 없습니다.")
+    print("유효한 이미지가 없습니다.")
