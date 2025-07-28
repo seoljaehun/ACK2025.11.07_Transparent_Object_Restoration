@@ -17,8 +17,7 @@
 
    VScode 터미널에 다음과 같은 명령어 입력:
 ```
-    pip install torch torchvision timm opencv-python matplotlib
-    pip install imutils
+    pip install torch torchvision timm opencv-python matplotlib imutils
 ```
 
 4. 이미지 넣기
