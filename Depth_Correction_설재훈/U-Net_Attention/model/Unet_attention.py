@@ -269,6 +269,8 @@ class UNetAttention(nn.Module):
             occ_edge: Occlusion edge 이미지 (1채널)
             contact_edge: Contact edge 이미지 (1채널)
             normal_img: Normal 이미지 (3채널)
+        Returns:
+            logits: residual depth map, (B, 1, H, W)
         """
         # Encoder
         # 공간 크기가 크면 해상도가 높아져 세부 구조 특징 훈련
