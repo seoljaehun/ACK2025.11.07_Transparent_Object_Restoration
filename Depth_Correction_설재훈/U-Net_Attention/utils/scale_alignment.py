@@ -41,10 +41,11 @@ def align_scale(gt, init_depth, mask=None):
         raise ValueError("유효 픽셀이 너무 적습니다. (mask를 확인하세요)")
 
     # 최소제곱법으로 s, t 계산
-    A = np.vstack([init_valid, np.ones(len(init_valid))]).T
-    s, t = np.linalg.lstsq(A, gt_valid, rcond=None)[0]
+    # init = s * gt + t 관계 찾기
+    A = np.vstack([gt_valid, np.ones(len(gt_valid))]).T
+    s, t = np.linalg.lstsq(A, init_valid, rcond=None)[0]
 
     # GT를 초기 뎁스 스케일로 변환
-    aligned_gt = (gt - t) / s
+    aligned_gt = s * gt + t
 
     return aligned_gt, s, t
