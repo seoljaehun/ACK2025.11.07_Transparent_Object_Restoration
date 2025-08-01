@@ -38,9 +38,10 @@ class OcclusionEdgeAttention(nn.Module):
             x: U-Net feature
             aux: Occlusion edge 이미지
         """
-        aux_feat = self.aux_conv(aux)     # occlusion edge -> feaature 변환
-        combined = x + aux_feat           # U-Net feature + Occlusion feature 결합
-        weight = self.att_conv(combined)  # Attention weight 계산 ([0,1])
+        aux_feat = self.aux_conv(aux)       # occlusion edge -> feaature 변환
+        combined = x + aux_feat             # U-Net feature + Occlusion feature 결합
+        weight = self.att_conv(combined)    # Attention weight 계산 ([0,1])
+        self.att_weight = weight            # Attention weight Map 저장, (B, C, H, W)
         
         # 원래 feature에 가중치 적용
         return x * weight               
@@ -77,6 +78,7 @@ class ContactEdgeAttention(nn.Module):
         aux_feat = self.aux_conv(aux)       # Contact edge -> feaature 변환
         combined = x + aux_feat             # U-Net feature + Contact feature 결합
         weight = self.att_conv(combined)    # Attention weight 계산 ([0,1])
+        self.att_weight = weight            # Attention weight Map 저장, (B, C, H, W)
         
         # 원래 feature에 가중치 적용
         return x * weight
@@ -113,6 +115,7 @@ class NormalAttention(nn.Module):
         aux_feat = self.aux_conv(aux)       # Normal edge -> feaature 변환
         combined = x + aux_feat             # U-Net feature + Normal feature 결합
         weight = self.att_conv(combined)    # Attention weight 계산 ([0,1])
+        self.att_weight = weight            # Attention weight Map 저장, (B, C, H, W)
         
         # 원래 feature에 가중치 적용
         return x * weight
@@ -269,6 +272,8 @@ class UNetAttention(nn.Module):
             occ_edge: Occlusion edge 이미지 (1채널)
             contact_edge: Contact edge 이미지 (1채널)
             normal_img: Normal 이미지 (3채널)
+        Returns:
+            logits: residual depth map, (B, 1, H, W)
         """
         # Encoder
         # 공간 크기가 크면 해상도가 높아져 세부 구조 특징 훈련

@@ -6,13 +6,13 @@ torch.cuda.empty_cache()  # GPU 캐시 초기화
 from torch.utils.data import DataLoader
 import os
 from config import Config
-from model.Unet_attention import UNetAttention
+from model.Unet_Residual import UNetBaseline
 from loss.loss1_basic import MaskedL1Loss
 from dataset.dataset_image import CleargaspDataset
 from train.trainer import train_one_epoch, validate_one_epoch
 from utils.checkpoint import save_checkpoint, load_checkpoint
-from torch.optim.lr_scheduler import ReduceLROnPlateau  
-    
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+
 if __name__ == "__main__":
     # config() 클래서에서 경로, 하이퍼 파라미터, 디바이스 설정 정보 불러오기
     cfg = Config()
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     #==========================
     
     # UNetAttention 클래스에서 모델 로드 -> GPU
-    model = UNetAttention(n_channels=cfg.in_channels, n_classes=cfg.out_channels).to(device)
+    model = UNetBaseline(n_channels=cfg.in_channels, n_classes=cfg.out_channels).to(device)
     # MaskedL1Loss 클래스에서 Loss 함수 로드 -> GPU
     criterion = MaskedL1Loss()
     # optimizer 설정 -> Adam
@@ -91,28 +91,13 @@ if __name__ == "__main__":
             print(f"[INFO] Resuming training from epoch {start_epoch + 1}")
 
     #==========================
-    # Save Attention Weight Map
-    #==========================
-
-    # Attention weight 이미지 이름
-    target_filename = "cup-with-waves-train (1)"
-
-    # 저장할 attention weight 폴더
-    attention_base_dir = os.path.join(cfg.root_dir, "Attention_weight")
-
-    # 저장할 각 경로에 폴더 생성
-    os.makedirs(os.path.join(attention_base_dir, "occlusion"), exist_ok=True)
-    os.makedirs(os.path.join(attention_base_dir, "contact"), exist_ok=True)
-    os.makedirs(os.path.join(attention_base_dir, "normal"), exist_ok=True)
-    
-    #==========================
-    # Training & Validation Loop
+    # Training & Validation Loop 
     #==========================
     for epoch in range(start_epoch, cfg.epochs):
         print(f"\nEpoch [{epoch + 1}/{cfg.epochs}]")
 
         # 1. Training
-        avg_train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch, save_target_filename=target_filename, save_dir=attention_base_dir)
+        avg_train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device)
         
         # 2. Validation
         avg_val_loss = validate_one_epoch(model, val_loader, criterion, device)

@@ -6,7 +6,6 @@
 #       RGB            .jpg          (1080, 1920, 3)    uint8       3   
 #    init_Depth        .pfm          (1080, 1920)       float32     1
 #     gt_Depth         .exr          (1080, 1920, 3)    float32     3
-#       Edge           .png          (1080, 1920)       uint8       1
 #      Normal          .exr          (1080, 1920, 3)    float32     3
 #       Mask           .png          (1080, 1920)       uint8       1
 #===========================================================================================
@@ -59,8 +58,6 @@ class CleargaspDataset(Dataset):
         self.gt_depth_dir = os.path.join(root_dir, "GT_img", split)
         self.mask_dir = os.path.join(root_dir, "Mask_img", split)
         self.normal_dir = os.path.join(root_dir, "Normal_img", split)
-        self.occlusion_dir = os.path.join(root_dir, "Occlusion_edge_img", split)
-        self.contact_dir = os.path.join(root_dir, "Contact_edge_img", split)
 
         # RGB 이미지 파일 이름 목록을 저장하는 리스트
         self.files = sorted(os.listdir(self.rgb_dir))
@@ -138,23 +135,12 @@ class CleargaspDataset(Dataset):
         residual = aligned_gt - init_norm  # (H, W)
 
         #===========================
-        # Load Extra Attention Inputs
+        # Load Extra Loss Inputs
         #===========================
         normal_path = os.path.join(self.normal_dir, filename + ".exr")
         normal_img = cv2.imread(normal_path, cv2.IMREAD_UNCHANGED)  # float32, (H, W, 3)
         if normal_img is None:
             normal_img = np.zeros((init_norm.shape[0], init_norm.shape[1], 3), dtype=np.float32)
-
-        occlusion_path = os.path.join(self.occlusion_dir, filename + ".png")
-        occlusion_img = cv2.imread(occlusion_path, cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.0 # float32, (H, W), 정규화(0 ~ 1)
-        if occlusion_img is None:
-            occlusion_img = np.zeros_like(init_norm, dtype=np.float32)
-
-        contact_path = os.path.join(self.contact_dir, filename + ".png")
-        contact_img = cv2.imread(contact_path, cv2.IMREAD_GRAYSCALE).astype(np.float32) / 255.0     # float32, (H, W), 정규화(0 ~ 1)
-        if contact_img is None:
-            contact_img = np.zeros_like(init_norm, dtype=np.float32)
-
 
         #===========================
         # Resize All Images
@@ -166,8 +152,6 @@ class CleargaspDataset(Dataset):
         residual = cv2.resize(residual, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
         mask = cv2.resize(mask, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
         normal_img = cv2.resize(normal_img, (target_w, target_h), interpolation=cv2.INTER_AREA)
-        occlusion_img = cv2.resize(occlusion_img, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
-        contact_img = cv2.resize(contact_img, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
 
         #===========================
         # Convert to Tensor: (H, W, C) -> (C, H, W) 변환
@@ -176,8 +160,6 @@ class CleargaspDataset(Dataset):
         init_norm = np.expand_dims(init_norm, axis=0)         # (1, H, W)
         residual = np.expand_dims(residual, axis=0)           # (1, H, W)
         normal_img = normal_img.transpose(2, 0, 1)            # (3, H, W)
-        occlusion_img = np.expand_dims(occlusion_img, axis=0) # (1, H, W)
-        contact_img = np.expand_dims(contact_img, axis=0)     # (1, H, W)
         mask = np.expand_dims(mask, axis=0)                   # (1, H, W)
 
         sample = {
@@ -187,8 +169,6 @@ class CleargaspDataset(Dataset):
             "target": torch.from_numpy(residual).float(),  # (1, H, W)
             "rgb": torch.from_numpy(rgb).float(),  # (3, H, W), 정규화된 상태(0~1)
             "normal": torch.from_numpy(normal_img).float(),
-            "occlusion": torch.from_numpy(occlusion_img).float(),
-            "contact": torch.from_numpy(contact_img).float(),
             "mask": torch.from_numpy(mask).float(),
             "filename": filename
         }

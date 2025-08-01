@@ -21,7 +21,7 @@ def save_checkpoint(model, optimizer, epoch, val_loss, path):
         "val_loss": val_loss  # 현재까지의 Validation Loss 최소값
     }
     # checkpoint를 지정된 경로에 바이너리 형태로 저장
-    torch.save(checkpoint, path)    
+    torch.save(checkpoint, path)
     print(f"[INFO] Checkpoint saved at {path}")
 
 

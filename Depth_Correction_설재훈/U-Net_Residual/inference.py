@@ -8,7 +8,7 @@ os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"  # OpenCV EXR 지원 활성화
 import cv2
 import numpy as np
 from config import Config
-from model.Unet_attention import UNetAttention
+from model.Unet_Residual import UNetBaseline
 from dataset.dataset_image import CleargaspDataset
 from utils.checkpoint import load_checkpoint
 
@@ -62,7 +62,6 @@ if __name__ == "__main__":
 
     # CleargaspDataset 클래스에서 test 데이터 셋 로드
     test_dataset = CleargaspDataset(root_dir=cfg.root_dir, split="Test")
-    
     # DataLoader 초기화
     # batch_size: batch 수 만큼 데이터를 묶어 GPU에 전달 (= 1)
     # shuffle = False: 순서를 섞지 않고 testing
@@ -70,7 +69,7 @@ if __name__ == "__main__":
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=cfg.num_workers)
 
     # UNetAttention 클래스에서 모델 로드 -> GPU
-    model = UNetAttention(n_channels=cfg.in_channels, n_classes=cfg.out_channels).to(device)
+    model = UNetBaseline(n_channels=cfg.in_channels, n_classes=cfg.out_channels).to(device)
 
     # Load Best Model
     best_ckpt = os.path.join(cfg.checkpoint_dir, "best.pth")
@@ -96,9 +95,6 @@ if __name__ == "__main__":
             
             # 배치 데이터를 GPU로 이동
             inputs = batch["input"].to(device)
-            normal = batch["normal"].to(device)
-            occlusion = batch["occlusion"].to(device)
-            contact = batch["contact"].to(device)
             mask = batch["mask"].to(device)
             filename = batch["filename"][0]
 
@@ -108,7 +104,7 @@ if __name__ == "__main__":
             gt_residual = batch["target"].cpu().numpy()[0, 0]      # (H, W)
 
             # Predict Residual
-            outputs = model(inputs, occ_edge=occlusion, contact_edge=contact, normal_img=normal)
+            outputs = model(inputs)
             outputs = outputs * mask
             
             # 예측 오차 Depth를 numpy로 변환
