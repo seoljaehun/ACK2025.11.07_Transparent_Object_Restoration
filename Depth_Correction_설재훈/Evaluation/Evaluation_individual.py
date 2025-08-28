@@ -82,8 +82,8 @@ gt = cv2.resize(gt, target_size, interpolation=cv2.INTER_LINEAR)
 binary_mask = (mask == 255).astype(np.uint8)
 
 # 투명 물체 Mask 적용 
-opaque_object = opaque[binary_mask == 1]
-gt_object = gt[binary_mask == 1]
+opaque_object = opaque[binary_mask == 0]
+gt_object = gt[binary_mask == 0]
 
 # valid 픽셀 마스크 (gt>0, pred>0)
 valid = (gt_object > 0) & (opaque_object > 0)
