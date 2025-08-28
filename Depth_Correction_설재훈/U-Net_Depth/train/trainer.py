@@ -37,8 +37,6 @@ def train_one_epoch(model, loader, optimizer, criterion, device, max_grad_norm=5
         # 배치 데이터를 GPU로 이동
         inputs = batch["input"].to(device)
         target = batch["target"].to(device)
-        init_depth = batch["init"].to(device)
-        mask = batch["mask"].to(device)
         
         # Gradient 초기화
         optimizer.zero_grad()
@@ -46,7 +44,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device, max_grad_norm=5
         # 모델의 Forward 연산
         outputs = model(inputs)
         # 손실 계산
-        loss, L1_loss, grad_loss, norm_loss = criterion(outputs, target, init_depth, mask)  # Mask-L1 Loss
+        loss, L1_loss, grad_loss, norm_loss = criterion(outputs, target)  # L1 Loss
         # 손실 기반 Gradient 계산
         loss.backward()
         # Gradient Clipping -> Gradient 폭발 방지
@@ -96,13 +94,11 @@ def validate_one_epoch(model, loader, criterion, device):
             # 배치 데이터를 GPU로 이동
             inputs = batch["input"].to(device)
             target = batch["target"].to(device)
-            init_depth = batch["init"].to(device)
-            mask = batch["mask"].to(device)
         
             # 모델의 Forward 연산
             outputs = model(inputs)
             # 손실 계산
-            loss, L1_loss, grad_loss, norm_loss = criterion(outputs, target, init_depth, mask) # Mask-L1 Loss
+            loss, L1_loss, grad_loss, norm_loss = criterion(outputs, target) # L1 Loss
             
             # 배치별 Loss를 누적
             total_loss += loss.item()

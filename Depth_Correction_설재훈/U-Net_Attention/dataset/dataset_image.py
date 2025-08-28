@@ -97,16 +97,12 @@ class CleargaspDataset(Dataset):
         init_depth_path = os.path.join(self.init_depth_dir, filename + ".pfm")
         init_depth = load_pfm(init_depth_path).astype(np.float32)   # float32, (H, W)
         
-        # 정규화: Robust Min-Max
-        # 극단값(outlier)를 제거하기위해 min(하위 1% 값), max(상위 1% 값)으로 설정
-        lower_percentile = 1.0
-        upper_percentile = 99.0
-        init_min = np.percentile(init_depth, lower_percentile)
-        init_max = np.percentile(init_depth, upper_percentile)
-        scale = init_max - init_min
-        # 1% 보다 작은 값들은 정규화시 0보다 작은 값, 99% 보다 큰 값들은 정규화시 1보다 큰 값으로 나옴
-        # -> 0 ~ 1 사이로 값을 자르는 후처리 진행
-        init_norm = np.clip((init_depth - init_min) / (scale + 1e-4), 0.0, 1.0)
+        # 정규화: Min-Max
+        # 픽셀 값의 상대적인 비율은 유지하고 스케일만 변환
+        init_min = np.min(init_depth)
+        init_max = np.max(init_depth)
+        scale = init_max - init_min + 1e-4
+        init_norm = (init_depth - init_min) / scale
         
         #===========================
         # Load GT Depth (.exr)
@@ -186,10 +182,11 @@ class CleargaspDataset(Dataset):
             # 목표(target): residual 이미지(1차원)
             "target": torch.from_numpy(residual).float(),  # (1, H, W)
             "rgb": torch.from_numpy(rgb).float(),  # (3, H, W), 정규화된 상태(0~1)
+            "init": torch.from_numpy(init_norm).float(),
+            "mask": torch.from_numpy(mask).float(),
             "normal": torch.from_numpy(normal_img).float(),
             "occlusion": torch.from_numpy(occlusion_img).float(),
             "contact": torch.from_numpy(contact_img).float(),
-            "mask": torch.from_numpy(mask).float(),
             "filename": filename
         }
 

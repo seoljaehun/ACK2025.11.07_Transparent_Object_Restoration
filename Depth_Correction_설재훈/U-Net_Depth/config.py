@@ -17,9 +17,8 @@ class Config:
     #=====================
     # Inference Result Path
     #=====================
-    inference_output_dir = r"D:\Dataset\Cleargrasp_Dataset\inference_results"   # 추론 결과 이미지 저장 경로
-    attention_weight_dir = r"D:\Dataset\Cleargrasp_Dataset\Attention_weight"    # attention weight 이미지 저장 경로
-    
+    inference_output_dir = r"D:\Dataset\Cleargrasp_Dataset\inference_results" # 추론 결과 이미지 저장 경로
+
     #=====================
     # Training Settings
     #=====================
@@ -31,8 +30,8 @@ class Config:
     #=====================
     # Model Settings
     #=====================
-    in_channels = 4          # 입력 채널: RGB(3) + Init Depth(1)
-    out_channels = 1         # 출력 채널: Residual Depth(1)
+    in_channels = 3          # 입력 채널: RGB(3)
+    out_channels = 1         # 출력 채널: Depth(1)
 
     #=====================
     # Device

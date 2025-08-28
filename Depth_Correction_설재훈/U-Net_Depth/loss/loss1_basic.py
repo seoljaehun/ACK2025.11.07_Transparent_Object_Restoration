@@ -1,21 +1,22 @@
-#  Mask-L1 Loss 함수
-# : 딥러닝 모델의 Loss 함수 정의, Masked L1 Loss + Gradient Consistency Loss + Surface Normal Consistency Loss
+#  L1 Loss 함수
+# : 딥러닝 모델의 Loss 함수 정의, L1 Loss + Gradient Consistency Loss + Surface Normal Consistency Loss
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from utils.scale_alignment import align_scale  # utils -> scale_alignment -> align_scale 함수 불러오기
 
 # Loss 정의
-class MaskedL1Loss(nn.Module):
+class L1Loss(nn.Module):
     """
-        Masked L1 Loss + Gradient Consistency Loss + Surface Normal Consistency Loss
-        1. Masked L1 Loss: 예측된 Depth Map의 오차 예측 정확도를 높이기 위한 Loss
+        L1 Loss + Gradient Consistency Loss + Surface Normal Consistency Loss
+        1. L1 Loss: 예측된 Depth Map의 예측 정확도를 높이기 위한 Loss
         2. Gradient Consistency Loss: 예측된 Depth Map과 GT Depth Map의 기울기 구조를 비슷하게 만들기 위한 Loss
         3. Surface Normal Consistency Loss: 예측된 Depth Map과 GT Depth Map의 표면 법선 벡터의 방향을 비슷하게 만들기 위한 Loss
     """
     def __init__(self, lambda_Gradient=1.0, lambda_Normal=0.01): 
         # 부모 클래스(nn.Module) 초기화
-        super(MaskedL1Loss, self).__init__()
+        super(L1Loss, self).__init__()
         self.lambda_Gradient = lambda_Gradient  # Gradient Consistency Loss의 가중치
         self.lambda_Normal = lambda_Normal      # Surface Normal Consistency Loss의 가중치
 
@@ -66,52 +67,49 @@ class MaskedL1Loss(nn.Module):
     
         return estimated_normal
 
-    def forward(self, pred, target, init, mask):
+    def forward(self, pred, target):
         """
             총 손실 값 계산
         Args:
-            pred: 모델 오차 예측값, (B, 1, H, W)
-            target: gt 오차값(residual), (B, 1, H, W)
-            init: 초기 뎁스 값, (B, 1, H, W)
-            mask: 투명 영역 segmentation mask (1 = valid, 0 = invalid), (B, 1, H, W)
+            pred: 모델 뎁스 예측값, (B, 1, H, W)
+            target: gt 뎁스 값, (B, 1, H, W)
         """
-        # 예측 뎁스, GT 뎁스 계산
-        pred_Depth = init.detach() + pred
-        target_Depth = init.detach() + target
+
+        # 예측 depth 이미지를 gt_depth 이미지에 대한 s, t 값 계산
+        s, t = align_scale(target, pred)
+        
+        # s와 t의 모양을 (B,) -> (B, 1, 1, 1)로 바꿔 pred와 연산할 수 있게 함
+        s_view = s.view(-1, 1, 1, 1)
+        t_view = t.view(-1, 1, 1, 1)
+        
+        aligned_pred = s_view * pred + t_view
         
         #==========================
-        # 1. Masked L1 Loss
+        # 1. basic L1 Loss
         #==========================
         
         # 예측값과 gt 값의 절대 차이 계산
-        diff = torch.abs(pred - target)
-        
-        # 마스크 적용: 투명 물체 영역만 Loss 계산 (배경 영역의 Loss 값은 0으로 무시)
-        masked_loss = diff * mask
+        loss_L1 = torch.abs(aligned_pred - target)
         
         # 모든 픽셀의 Loss 평균 값 
-        masked_loss_mean = masked_loss.sum() / (mask.sum() + 1e-8)
+        loss_L1_mean = loss_L1.mean()
         
         #==========================
         # 2. Gradient Consistency Loss
         #==========================
         
         # 예측 Depth Map과 GT Depth Map의 Gradient 계산
-        pred_dx = self.gradient_x(pred_Depth)
-        pred_dy = self.gradient_y(pred_Depth)
-        target_dx = self.gradient_x(target_Depth)
-        target_dy = self.gradient_y(target_Depth)
+        pred_dx = self.gradient_x(aligned_pred)
+        pred_dy = self.gradient_y(aligned_pred)
+        target_dx = self.gradient_x(target)
+        target_dy = self.gradient_y(target)
         
         # Gradient 차이 계산
         Grad_loss_x = torch.abs(pred_dx - target_dx)
         Grad_loss_y = torch.abs(pred_dy - target_dy)
         
-        # mask는 gradient 크기에 맞게 슬라이스 (W-1, H-1 차이 보정)
-        mask_x = mask[:, :, :, :-1]
-        mask_y = mask[:, :, :-1, :]
-        
-        # Gradient Loss Map 계산 (배경 영역의 Loss 값은 0으로 무시)
-        Gradient_loss_mean = ((Grad_loss_x * mask_x).sum() / (mask_x.sum() + 1e-6) + (Grad_loss_y * mask_y).sum() / (mask_y.sum() + 1e-6)) / 2
+        # Gradient Loss Map 계산
+        Gradient_loss_mean = (Grad_loss_x.mean() + Grad_loss_y.mean()) / 2
         
         #==========================
         # 3. Surface Normal Consistency Loss
@@ -120,9 +118,9 @@ class MaskedL1Loss(nn.Module):
         SCALING_FACTOR = 500
         
         # Initial Depth로부터 Predicted Normal 계산
-        pred_normal = self.compute_normal_from_depth(pred_Depth, scaling_factor=SCALING_FACTOR)
+        pred_normal = self.compute_normal_from_depth(aligned_pred, scaling_factor=SCALING_FACTOR)
         # GT Depth로부터 Target Normal 계산
-        target_normal = self.compute_normal_from_depth(target_Depth, scaling_factor=SCALING_FACTOR)
+        target_normal = self.compute_normal_from_depth(target, scaling_factor=SCALING_FACTOR)
         
         # cosine similarity 계산
         # : 두 벡터의 내적 -> pred_normal ⋅ gt_normal = cos(θ)
@@ -133,10 +131,10 @@ class MaskedL1Loss(nn.Module):
         normal_loss = 1.0 - cos_sim     # (B, 1, H, W)
         
         # Normal Loss Map 계산 (배경 영역의 Loss 값은 0으로 무시)
-        normal_loss_mean = (normal_loss * mask).sum() / (mask.sum() + 1e-6)
+        normal_loss_mean = normal_loss.mean()
         
         #==========================
         # 4. Total Loss = Masked L1 + λ1 * Gradient Loss + λ2 * Normal Loss
         #==========================
-        total_loss = masked_loss_mean + self.lambda_Gradient * Gradient_loss_mean + self.lambda_Normal * normal_loss_mean
-        return total_loss, masked_loss_mean, Gradient_loss_mean, normal_loss_mean
+        total_loss = loss_L1_mean + self.lambda_Gradient * Gradient_loss_mean + self.lambda_Normal * normal_loss_mean
+        return total_loss, loss_L1_mean, Gradient_loss_mean, normal_loss_mean

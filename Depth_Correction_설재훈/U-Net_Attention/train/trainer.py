@@ -3,30 +3,10 @@
 #  모델을 학습시키기 위해 데이터셋을 반복하여 가중치를 업데이트하는 과정
 
 import os
-import cv2
 import torch
-import numpy as np
 from tqdm import tqdm
+from utils.save_file import save_attention
 
-def save_exr(array, path):
-    """
-    attention weight를 exr로 저장 (float32 형식)
-    Args:
-        array: 저장할 데이터, torch.Tensor (B, C, H, W)
-        path: 저장 경로
-    """
-    # 만약 array가 PyTorch의 텐서 형태라면 그래디언트 추적을 끊고 CPU로 이동 후 numpy로 변환
-    if isinstance(array, torch.Tensor):
-        array = array.detach().cpu().numpy()
-
-    # (C, H, W) -> 평균 (H, W) 변환
-    if array.ndim == 3:
-        array = array.mean(axis=0)
-        array = (array - array.min()) / (array.max() - array.min() + 1e-6)  # 0~1 시각적 정규화
-
-    # 특정 경로에 .exr 확장자로 저장
-    cv2.imwrite(path, array.astype(np.float32))
-    
 #==========================
 # Train One Epoch
 #==========================
@@ -49,7 +29,10 @@ def train_one_epoch(model, loader, optimizer, criterion, device, epoch, max_grad
     # 학습 모드 활성화
     model.train()
     # 손실 누적 변수 초기화
-    total_loss = 0
+    total_loss = 0.0
+    total_l1 = 0.0
+    total_grad = 0.0
+    total_normal = 0.0
     
     # 배치 반복
     for batch in tqdm(loader, desc="Training", leave=False): 
@@ -59,14 +42,12 @@ def train_one_epoch(model, loader, optimizer, criterion, device, epoch, max_grad
         # 배치 데이터를 GPU로 이동
         inputs = batch["input"].to(device)
         target = batch["target"].to(device)
+        init_depth = batch["init"].to(device)
         mask = batch["mask"].to(device)
         normal = batch["normal"].to(device)
         occlusion = batch["occlusion"].to(device)
         contact = batch["contact"].to(device)
         filenames = batch["filename"]
-
-        # 입력의 4번째 채널 -> init_Depth 추출
-        init_depth = inputs[:, 3:4, :, :]
 
         # Gradient 초기화
         optimizer.zero_grad()
@@ -74,7 +55,7 @@ def train_one_epoch(model, loader, optimizer, criterion, device, epoch, max_grad
         # 모델의 Forward 연산
         outputs = model(inputs, occ_edge=occlusion, contact_edge=contact, normal_img=normal)
         # 손실 계산
-        loss = criterion(outputs, target, init_depth, mask, normal)  # Mask-L1 Loss
+        loss, L1_loss, grad_loss, norm_loss = criterion(outputs, target, init_depth, mask)  # Mask-L1 Loss
         # 손실 기반 Gradient 계산
         loss.backward()
         # Gradient Clipping -> Gradient 폭발 방지
@@ -84,6 +65,9 @@ def train_one_epoch(model, loader, optimizer, criterion, device, epoch, max_grad
         optimizer.step()
         # 배치별 Loss를 누적
         total_loss += loss.item()
+        total_l1 += L1_loss.item()
+        total_grad += grad_loss.item()
+        total_normal += norm_loss.item()
         
         # 이미지 파일 이름을 리스트 형태로 변환
         filenames_list = list(filenames)
@@ -94,12 +78,12 @@ def train_one_epoch(model, loader, optimizer, criterion, device, epoch, max_grad
             
             # 저장 경로 생성
             ep_name = f"epoch_{epoch + 1:02d}.exr"
-            save_exr(model.occ_edge_att.att_weight[idx], os.path.join(save_dir, "occlusion", ep_name))
-            save_exr(model.contact_edge_att.att_weight[idx], os.path.join(save_dir, "contact", ep_name))
-            save_exr(model.normal_att.att_weight[idx], os.path.join(save_dir, "normal", ep_name))
+            save_attention(model.occ_edge_att.att_weight[idx], os.path.join(save_dir, "occlusion", ep_name))
+            save_attention(model.contact_edge_att.att_weight[idx], os.path.join(save_dir, "contact", ep_name))
+            save_attention(model.normal_att.att_weight[idx], os.path.join(save_dir, "normal", ep_name))
             
     # 1 Epoch 당 평균 Loss 반환
-    return total_loss / len(loader)
+    return total_loss / len(loader), total_l1 / len(loader), total_grad / len(loader), total_normal / len(loader)
 
 
 #==========================
@@ -119,8 +103,11 @@ def validate_one_epoch(model, loader, criterion, device):
     # 평가 모드 활성화
     model.eval()
     # 손실 누적 변수 초기화
-    total_loss = 0
-
+    total_loss = 0.0
+    total_l1 = 0.0
+    total_grad = 0.0
+    total_normal = 0.0
+    
     # Gradient 계산 비활성화, 검증 단계에서는 가중치 업데이트 안함
     with torch.no_grad():
         # 배치 반복
@@ -131,21 +118,22 @@ def validate_one_epoch(model, loader, criterion, device):
             # 배치 데이터를 GPU로 이동
             inputs = batch["input"].to(device)
             target = batch["target"].to(device)
+            init_depth = batch["init"].to(device)
             mask = batch["mask"].to(device)
             normal = batch["normal"].to(device)
             occlusion = batch["occlusion"].to(device)
             contact = batch["contact"].to(device)
 
-            # 입력의 4번째 채널 -> init_Depth 추출
-            init_depth = inputs[:, 3:4, :, :]
-        
             # 모델의 Forward 연산
             outputs = model(inputs, occ_edge=occlusion, contact_edge=contact, normal_img=normal)
             # 손실 계산
-            loss = criterion(outputs, target, init_depth, mask, normal) # Mask-L1 Loss
+            loss, L1_loss, grad_loss, norm_loss = criterion(outputs, target, init_depth, mask) # Mask-L1 Loss
             
             # 배치별 Loss를 누적
             total_loss += loss.item()
+            total_l1 += L1_loss.item()
+            total_grad += grad_loss.item()
+            total_normal += norm_loss.item()
 
     # 1 Epoch 당 평균 Loss 반환
-    return total_loss / len(loader)
+    return total_loss / len(loader), total_l1 / len(loader), total_grad / len(loader), total_normal / len(loader)

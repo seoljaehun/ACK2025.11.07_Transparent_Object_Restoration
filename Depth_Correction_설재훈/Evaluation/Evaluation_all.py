@@ -103,8 +103,8 @@ for fname in sorted(os.listdir(gt_dir)):
         binary_mask = (mask == 255).astype(np.uint8)
         
         # 투명 물체 Mask 적용
-        opaque_object = opaque[binary_mask == 1]
-        gt_object = gt[binary_mask == 1]
+        opaque_object = opaque[binary_mask == 0]
+        gt_object = gt[binary_mask == 0]
 
         # 물체 영역에서 유효값 필터링
         valid = (gt_object > 0) & (opaque_object > 0)

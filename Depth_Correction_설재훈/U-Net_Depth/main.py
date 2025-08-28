@@ -6,8 +6,8 @@ torch.cuda.empty_cache()  # GPU 캐시 초기화
 from torch.utils.data import DataLoader
 import os
 from config import Config
-from model.Unet_Residual import UNetBaseline
-from loss.loss1_basic import MaskedL1Loss
+from model.Unet_Depth import UNetBaseline
+from loss.loss1_basic import L1Loss
 from dataset.dataset_image import CleargaspDataset
 from train.trainer import train_one_epoch, validate_one_epoch
 from utils.checkpoint import save_checkpoint, load_checkpoint
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # UNetAttention 클래스에서 모델 로드 -> GPU
     model = UNetBaseline(n_channels=cfg.in_channels, n_classes=cfg.out_channels).to(device)
     # MaskedL1Loss 클래스에서 Loss 함수 로드 -> GPU
-    criterion = MaskedL1Loss()
+    criterion = L1Loss()
     # optimizer 설정 -> Adam
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate) # 여기서 learning_rate는 초기값
     

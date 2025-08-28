@@ -52,5 +52,5 @@ def load_checkpoint(model, optimizer, path, device):
     
     # 로드 정보 출력 후 epoch, val_loss 값만 반환
     # 가중치와 optimizer는 이미 model과 optimizer 객체에 로드된 상태
-    print(f"[INFO] Checkpoint loaded from {path} | Epoch: {epoch} | Best Val Loss: {val_loss:.4f}")
+    print(f"[INFO] Checkpoint loaded from {path} | Epoch: {epoch+1} | Best Val Loss: {val_loss:.4f}")
     return epoch, val_loss

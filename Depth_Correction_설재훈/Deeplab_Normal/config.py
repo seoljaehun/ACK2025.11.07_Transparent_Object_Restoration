@@ -17,22 +17,15 @@ class Config:
     #=====================
     # Inference Result Path
     #=====================
-    inference_output_dir = r"D:\Dataset\Cleargrasp_Dataset\inference_results"   # 추론 결과 이미지 저장 경로
-    attention_weight_dir = r"D:\Dataset\Cleargrasp_Dataset\Attention_weight"    # attention weight 이미지 저장 경로
-    
+    inference_output_dir = r"D:\Dataset\Cleargrasp_Dataset\inference_results" # 추론 결과 이미지 저장 경로
+
     #=====================
     # Training Settings
     #=====================
-    epochs = 30              # 학습 반복 횟수
+    epochs = 50              # 학습 반복 횟수
     batch_size = 8           # 배치 사이즈
     learning_rate = 5e-5     # optimizer 학습률
     num_workers = 8          # DataLoader에서 데이터 로드할 병렬 스레드 수
-
-    #=====================
-    # Model Settings
-    #=====================
-    in_channels = 4          # 입력 채널: RGB(3) + Init Depth(1)
-    out_channels = 1         # 출력 채널: Residual Depth(1)
 
     #=====================
     # Device

@@ -8,7 +8,7 @@ os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"  # OpenCV EXR 지원 활성화
 import cv2
 import numpy as np
 from config import Config
-from model.Unet_Residual import UNetBaseline
+from model.Unet_Depth import UNetBaseline
 from dataset.dataset_image import CleargaspDataset
 from utils.checkpoint import load_checkpoint
 from utils.save_file import save_image, save_exr
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     # Output Directory (결과를 저장할 상위 폴더)
     output_dir = cfg.inference_output_dir
-    subfolders = ["rgb", "init_depth", "pred_depth", "gt_depth", "exr_pred", "exr_gt", "exr_residual"]
+    subfolders = ["rgb", "pred_depth", "gt_depth", "exr_pred", "exr_gt"]
     
     # 저장할 폴더가 없는 경우 생성
     for folder in subfolders:
@@ -58,44 +58,32 @@ if __name__ == "__main__":
             # 배치 데이터를 GPU로 이동
             inputs = batch["input"].to(device)
             target = batch["target"].to(device)
-            rgb = batch["rgb"].to(device)
-            init = batch["init"].to(device)
-            mask = batch["mask"].to(device)
             filename = batch["filename"][0]
 
             # 초기 상태로 변환
-            gt_residual = target.cpu().numpy()[0, 0]    # (H, W)
-            init_depth = init.cpu().numpy()[0, 0]  # (H, W)
-            rgb = (rgb.cpu().numpy()[0].transpose(1, 2, 0) * 255).astype(np.uint8)
+            gt_depth = target.cpu().numpy()[0, 0]    # (H, W)
+            rgb = (inputs.cpu().numpy()[0].transpose(1, 2, 0) * 255).astype(np.uint8)
             
-            # Predict Residual
+            # Predict Depth
             outputs = model(inputs)
-            outputs = outputs * mask
             
-            # 예측 오차 Depth를 numpy로 변환
-            pred_residual = outputs.cpu().numpy()[0, 0]
-
-            # 복원된 Depth, gt Depth 계산
-            pred_depth = init_depth + pred_residual
-            gt_depth = init_depth + gt_residual
+            # 예측 Depth를 numpy로 변환
+            pred_depth = outputs.cpu().numpy()[0, 0]
 
             #==========================
             # Save Paths
             #==========================
             rgb_path = os.path.join(output_dir, "rgb", f"{filename}.png")
-            init_depth_path = os.path.join(output_dir, "init_depth", f"{filename}.png")
             pred_depth_path = os.path.join(output_dir, "pred_depth", f"{filename}.png")
             gt_depth_path = os.path.join(output_dir, "gt_depth", f"{filename}.png")
 
             pred_exr_path = os.path.join(output_dir, "exr_pred", f"{filename}.exr")
             gt_exr_path = os.path.join(output_dir, "exr_gt", f"{filename}.exr")
-            residual_exr_path = os.path.join(output_dir, "exr_residual", f"{filename}.exr")
 
             #==========================
             # Save Visualization PNG
             #==========================
             cv2.imwrite(rgb_path, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-            save_image(init_depth, init_depth_path)
             save_image(pred_depth, pred_depth_path)
             save_image(gt_depth, gt_depth_path)
 
@@ -104,6 +92,5 @@ if __name__ == "__main__":
             #==========================
             save_exr(pred_depth, pred_exr_path)
             save_exr(gt_depth, gt_exr_path)
-            save_exr(pred_residual, residual_exr_path)
 
             print(f"[INFO] Saved: {filename}")

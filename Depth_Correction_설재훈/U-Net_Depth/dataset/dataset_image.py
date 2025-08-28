@@ -4,9 +4,7 @@
 #       Type       file extension         Shape         Dtype    Channels
 #===========================================================================================
 #       RGB            .jpg          (1080, 1920, 3)    uint8       3   
-#    init_Depth        .pfm          (1080, 1920)       float32     1
 #     gt_Depth         .exr          (1080, 1920, 3)    float32     3
-#       Mask           .png          (1080, 1920)       uint8       1
 #===========================================================================================
 
 import os
@@ -15,24 +13,6 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 import cv2
-from utils.scale_alignment import align_scale  # utils -> scale_alignment -> align_scale 함수 불러오기
-
-#===========================
-# PFM Loader
-#===========================
-def load_pfm(file_path):
-    """Load PFM depth file as numpy array"""
-    with open(file_path, 'rb') as f:
-        header = f.readline().decode('utf-8').rstrip()
-        color = header == 'PF'
-        dim_line = f.readline().decode('utf-8').rstrip()
-        width, height = map(int, dim_line.split())
-        scale = float(f.readline().decode('utf-8').rstrip())
-        data = np.fromfile(f, '<f')  # little-endian float
-        shape = (height, width, 3) if color else (height, width)
-        data = np.reshape(data, shape)
-        data = np.flipud(data)  # PFM stores images upside down
-        return data
 
 #===========================
 # Dataset Class
@@ -53,9 +33,7 @@ class CleargaspDataset(Dataset):
 
         # 데이터 별 경로를 인스턴트 변수로 선언
         self.rgb_dir = os.path.join(root_dir, "RGB_img", split)
-        self.init_depth_dir = os.path.join(root_dir, "Depth_img", split)
         self.gt_depth_dir = os.path.join(root_dir, "GT_img", split)
-        self.mask_dir = os.path.join(root_dir, "Mask_img", split)
 
         # RGB 이미지 파일 이름 목록을 저장하는 리스트
         self.files = sorted(os.listdir(self.rgb_dir))
@@ -85,19 +63,6 @@ class CleargaspDataset(Dataset):
         rgb = cv2.imread(rgb_path, cv2.IMREAD_COLOR)    # (H, W, 3), BGR 순서
         rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)      # BGR -> RGB 순서 변환
         rgb = rgb.astype(np.float32) / 255.0            # float32 적용 및 픽셀 값 정규화(0 ~ 1)
-
-        #===========================
-        # Load Init Depth (.pfm)
-        #===========================
-        init_depth_path = os.path.join(self.init_depth_dir, filename + ".pfm")
-        init_depth = load_pfm(init_depth_path).astype(np.float32)   # float32, (H, W)
-        
-        # 정규화: Min-Max
-        # 픽셀 값의 상대적인 비율 유지
-        init_min = np.min(init_depth)
-        init_max = np.max(init_depth)
-        scale = init_max - init_min + 1e-6
-        init_norm = (init_depth - init_min) / scale
         
         #===========================
         # Load GT Depth (.exr)
@@ -108,52 +73,24 @@ class CleargaspDataset(Dataset):
             gt_depth = gt_depth[:, :, 0] # (H, W, 3) -> (H, W) shape 변환
 
         #===========================
-        # Load Mask (PNG)
-        #===========================
-        mask_path = os.path.join(self.mask_dir, filename + ".png")
-        mask_raw = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)  # (H, W)
-        mask = (mask_raw > 128).astype(np.uint8)  # 픽셀 이진분류: 1 = valid pixel, 0 = background
-
-        #===========================
-        # Align GT scale using mask
-        #===========================
-        
-        # gt 이미지를 init_Depth 이미지의 스케일과 오프셋으로 정렬
-        aligned_gt, s, t = align_scale(gt_depth, init_norm, mask) # (H, W)
-
-        #===========================
-        # Compute Residual Depth
-        #===========================
-        
-        # 정답 데이터: gt 뎁스 맵 - 초기 뎁스 맵 = 오차 뎁스 맵
-        residual = aligned_gt - init_norm  # (H, W)
-
-        #===========================
         # Resize All Images
         #===========================
         target_w, target_h = self.resize_shape
 
         rgb = cv2.resize(rgb, (target_w, target_h), interpolation=cv2.INTER_AREA)
-        init_norm = cv2.resize(init_norm, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
-        residual = cv2.resize(residual, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
-        mask = cv2.resize(mask, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
+        gt_depth = cv2.resize(gt_depth, (target_w, target_h), interpolation=cv2.INTER_NEAREST)
 
         #===========================
         # Convert to Tensor: (H, W, C) -> (C, H, W) 변환
         #===========================
         rgb = rgb.transpose(2, 0, 1)                          # (3, H, W)
-        init_norm = np.expand_dims(init_norm, axis=0)         # (1, H, W)
-        residual = np.expand_dims(residual, axis=0)           # (1, H, W)
-        mask = np.expand_dims(mask, axis=0)                   # (1, H, W)
+        gt_depth = np.expand_dims(gt_depth, axis=0)           # (1, H, W)
 
         sample = {
-            # 입력(input): RGB 이미지(3차원) + init_Depth_norm 이미지(1차원) = 4차원
-            "input": torch.from_numpy(np.concatenate([rgb, init_norm], axis=0)).float(),  # (4, H, W)
-            # 목표(target): residual 이미지(1차원)
-            "target": torch.from_numpy(residual).float(),  # (1, H, W)
-            "rgb": torch.from_numpy(rgb).float(),  # (3, H, W), 정규화된 상태(0~1)
-            "init": torch.from_numpy(init_norm).float(),
-            "mask": torch.from_numpy(mask).float(),
+            # 입력(input): RGB 이미지(3차원)
+            "input": torch.from_numpy(rgb).float(),  # (3, H, W)
+            # 목표(target): GT depth 이미지(1차원)
+            "target": torch.from_numpy(gt_depth).float(),  # (1, H, W)
             "filename": filename
         }
 

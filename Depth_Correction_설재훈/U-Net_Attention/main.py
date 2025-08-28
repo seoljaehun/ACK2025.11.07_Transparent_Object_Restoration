@@ -87,7 +87,8 @@ if __name__ == "__main__":
         
         # 마지막 모델의 가중치, optimizer, epoch, loss 등을 불러옴
         if os.path.exists(last_ckpt):
-            start_epoch, best_val_loss = load_checkpoint(model, optimizer, last_ckpt, device)
+            completed_epoch, best_val_loss = load_checkpoint(model, optimizer, last_ckpt, device)
+            start_epoch = completed_epoch + 1
             print(f"[INFO] Resuming training from epoch {start_epoch + 1}")
 
     #==========================
@@ -98,7 +99,7 @@ if __name__ == "__main__":
     target_filename = "cup-with-waves-train (1)"
 
     # 저장할 attention weight 폴더
-    attention_base_dir = os.path.join(cfg.root_dir, "Attention_weight")
+    attention_base_dir = cfg.attention_weight_dir
 
     # 저장할 각 경로에 폴더 생성
     os.makedirs(os.path.join(attention_base_dir, "occlusion"), exist_ok=True)
@@ -112,10 +113,10 @@ if __name__ == "__main__":
         print(f"\nEpoch [{epoch + 1}/{cfg.epochs}]")
 
         # 1. Training
-        avg_train_loss = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch, save_target_filename=target_filename, save_dir=attention_base_dir)
+        avg_train_loss, train_l1, train_grad, train_norm = train_one_epoch(model, train_loader, optimizer, criterion, device, epoch, save_target_filename=target_filename, save_dir=attention_base_dir)
         
         # 2. Validation
-        avg_val_loss = validate_one_epoch(model, val_loader, criterion, device)
+        avg_val_loss, val_l1, val_grad, val_norm = validate_one_epoch(model, val_loader, criterion, device)
 
         # Scheduler 적용
         scheduler.step(avg_val_loss)
@@ -123,8 +124,10 @@ if __name__ == "__main__":
         current_lr = optimizer.param_groups[0]['lr']
         
         # 평균 Loss 값 출력
-        print(f"[Epoch {epoch + 1}] Train Loss: {avg_train_loss:.4f} | "
-          f"Val Loss: {avg_val_loss:.4f} | LR: {current_lr:.6f}")
+        print(f"[Epoch {epoch + 1}] "
+              f"Train Loss: {avg_train_loss:.4f} (L1: {train_l1:.4f}, Grad: {train_grad:.4f}, Norm: {train_norm:.4f}) | "
+              f"Val Loss: {avg_val_loss:.4f} (L1: {val_l1:.4f}, Grad: {val_grad:.4f}, Norm: {val_norm:.4f}) | "
+              f"LR: {current_lr:.6f}")
 
         #==========================
         # Checkpoint 저장

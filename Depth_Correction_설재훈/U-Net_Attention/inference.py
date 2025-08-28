@@ -11,45 +11,7 @@ from config import Config
 from model.Unet_attention import UNetAttention
 from dataset.dataset_image import CleargaspDataset
 from utils.checkpoint import load_checkpoint
-
-#==========================
-# Utility Functions
-#==========================
-def save_depth_image(depth_array, save_path, normalize=True):
-    """
-        Depth Map을 보기 쉽게 .png 이미지로 저장하는 함수
-    Args:
-        depth_array: 입력 Depth Map (float 형태)
-        save_path: 저장할 png 파일 경로
-        normalize: 최소, 최대값을 기준으로 정규화(0 ~ 255)
-    """
-    
-    # 0 ~ 255 범위로 정규화
-    if normalize:
-        # 현재 뎁스 값의 최솟값과 최댓값을 찾음
-        depth_min = np.min(depth_array)
-        depth_max = np.max(depth_array)
-        # 뎁스 범위를 0 ~ 1로 변환
-        depth_vis = (depth_array - depth_min) / (depth_max - depth_min + 1e-8)
-        # 뎁스 범위를 0 ~ 255로 정규화
-        depth_vis = (depth_vis * 255).astype(np.uint8)
-    else:
-        # 이미 뎁스 범위가 0 ~ 1인 경우
-        depth_vis = (depth_array * 255).astype(np.uint8)
-        
-    # 정규화된 Depth Map을 png로 저장
-    cv2.imwrite(save_path, depth_vis)
-
-def save_exr(depth_array, save_path):
-    """
-        정규화를 하지 않고 실제 뎁스 값을 그대로 .exr 파일로 저장
-    Args:
-        depth_array: 입력 Depth Map (float 형태)
-        save_path: 저장할 exr 파일 경로
-    """
-    
-    # 실제 Depth Map을 float32 값으로 exr로 저장
-    cv2.imwrite(save_path, depth_array.astype(np.float32))
+from utils.save_file import save_image, save_exr
 
 #==========================
 # Inference Main
@@ -81,7 +43,7 @@ if __name__ == "__main__":
 
     # Output Directory (결과를 저장할 상위 폴더)
     output_dir = cfg.inference_output_dir
-    subfolders = ["rgb", "init_depth", "pred_depth", "gt_depth", "exr_pred", "exr_gt"]
+    subfolders = ["rgb", "init_depth", "pred_depth", "gt_depth", "exr_pred", "exr_gt", "exr_residual"]
     
     # 저장할 폴더가 없는 경우 생성
     for folder in subfolders:
@@ -96,17 +58,20 @@ if __name__ == "__main__":
             
             # 배치 데이터를 GPU로 이동
             inputs = batch["input"].to(device)
+            target = batch["target"].to(device)
+            rgb = batch["rgb"].to(device)
+            init = batch["init"].to(device)
+            mask = batch["mask"].to(device)
             normal = batch["normal"].to(device)
             occlusion = batch["occlusion"].to(device)
             contact = batch["contact"].to(device)
-            mask = batch["mask"].to(device)
             filename = batch["filename"][0]
 
-            # 입력의 4번째 채널 -> init_Depth 추출 후 numpy로 변환
-            init_depth = inputs[:, 3:4, :, :].cpu().numpy()[0, 0]  # (H, W)
-            # target의 1번째 채널 -> gt_Depth 추출 후 numpy로 변환
-            gt_residual = batch["target"].cpu().numpy()[0, 0]      # (H, W)
-
+            # 초기 상태로 변환
+            gt_residual = target.cpu().numpy()[0, 0]    # (H, W)
+            init_depth = init.cpu().numpy()[0, 0]  # (H, W)
+            rgb = (rgb.cpu().numpy()[0].transpose(1, 2, 0) * 255).astype(np.uint8)
+            
             # Predict Residual
             outputs = model(inputs, occ_edge=occlusion, contact_edge=contact, normal_img=normal)
             outputs = outputs * mask
@@ -118,9 +83,6 @@ if __name__ == "__main__":
             pred_depth = init_depth + pred_residual
             gt_depth = init_depth + gt_residual
 
-            # 입력의 1~3번째 채널 -> RGB 이미지 추출 후 초기 상태로 변환
-            rgb = (inputs[:, :3, :, :].cpu().numpy()[0].transpose(1, 2, 0) * 255).astype(np.uint8)
-
             #==========================
             # Save Paths
             #==========================
@@ -131,19 +93,21 @@ if __name__ == "__main__":
 
             pred_exr_path = os.path.join(output_dir, "exr_pred", f"{filename}.exr")
             gt_exr_path = os.path.join(output_dir, "exr_gt", f"{filename}.exr")
+            residual_exr_path = os.path.join(output_dir, "exr_residual", f"{filename}.exr")
 
             #==========================
             # Save Visualization PNG
             #==========================
             cv2.imwrite(rgb_path, cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
-            save_depth_image(init_depth, init_depth_path)
-            save_depth_image(pred_depth, pred_depth_path)
-            save_depth_image(gt_depth, gt_depth_path)
+            save_image(init_depth, init_depth_path)
+            save_image(pred_depth, pred_depth_path)
+            save_image(gt_depth, gt_depth_path)
 
             #==========================
             # Save Actual Depth EXR
             #==========================
             save_exr(pred_depth, pred_exr_path)
             save_exr(gt_depth, gt_exr_path)
+            save_exr(pred_residual, residual_exr_path)
 
             print(f"[INFO] Saved: {filename}")
