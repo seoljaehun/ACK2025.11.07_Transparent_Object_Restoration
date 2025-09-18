@@ -16,7 +16,7 @@
 
    코드 실행에 필요한 패키지 설치
 
-   ex) torch, poencv, mamatplotlib, imutils 등등
+   ex) torch, opencv, mamatplotlib, imutils 등등
 
 5. 이미지 넣기
 
