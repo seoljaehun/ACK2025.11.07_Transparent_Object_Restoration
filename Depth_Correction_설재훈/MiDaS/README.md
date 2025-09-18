@@ -15,10 +15,8 @@
 
 3. 패키지 설치
 
-   VScode 터미널에 다음과 같은 명령어 입력:
-```
-    pip install torch torchvision timm opencv-python matplotlib imutils
-```
+   코드 실행에 필요한 패키지 설치
+   ex) torch, poencv, mamatplotlib, imutils 등등
 
 4. 이미지 넣기
 
