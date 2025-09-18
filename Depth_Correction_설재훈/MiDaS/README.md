@@ -4,7 +4,6 @@
    VScode 터미널에 다음과 같은 명령어 입력:
 ```
     git clone https://github.com/isl-org/MiDaS.git
-    cd MiDaS
 ```
 
 2. 모델 다운로드
@@ -31,6 +30,7 @@
 
    VScode 터미널에 다음과 같은 명령어 입력:
 ```
+    cd MiDaS
     python run.py --model_type dpt_large_384 --input_path input --output_path output
 ```
 
