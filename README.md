@@ -1,4 +1,4 @@
-# 🥇 ACK2025_Transparent_Object_Restoration
+# 🥇 ACK2025.11.07_Transparent_Object_Restoration
 
 ---
 ### 휴머노이드 로봇을 위한 투명 물체 깊이 복원 알고리즘
