@@ -32,10 +32,10 @@
 
 ![MDE Result](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/MDE%20Result.PNG)
 
-- 불투명 물체 경우, 실제 형태와 구조가 잘 반영된 깊이 값으로 예측
-- 투명 물체 경우, 물체 내부 또는 경계에서 깊이가 결손되거나 배경의 깊이 값으로 잘못 예측
+- **불투명 물체 경우**, 실제 형태와 구조가 잘 반영된 깊이 값으로 예측
+- **투명 물체 경우**, 물체 내부 또는 경계에서 깊이가 결손되거나 배경의 깊이 값으로 잘못 예측
 
-->  기존 MDE 모델이 투명 물체의 광학적 특성을 반영하지 못하여, 해당 영역에서의 추정 정확도가 크게 저하됨
+->  기존 MDE 모델이 투명 물체의 **광학적 특성**을 반영하지 못하여, 해당 영역에서의 **추정 정확도**가 크게 저하됨
 
 # 3. 알고리즘 구조
 
@@ -43,16 +43,16 @@
 
 + **MDE Depth Estimation**
 
-  - 기존 MDE 모델을 활용해 RGB 이미지로부터 Init Depth 생성
+  - 기존 MDE 모델을 활용해 RGB 이미지로부터 **Init Depth** 생성
 
 + **Obtaining Auxiliary Visual Cues**
   
-  - 동일한 RGB 이미지로부터 보조 시각 정보 추출
+  - 동일한 RGB 이미지로부터 **보조 시각 정보** 추출
   - 보조 시각 정보: Occlusion Edge, Contact Edge, Surface Normal, Segmentation Mask
  
 + **Depth Restoration**
   
-  - 복원 모델은 RGB 이미지와 초기 깊이 맵을 입력 받아 투명 영역의 결손이 복원된 최종 깊이 맵 생성
+  - 복원 모델은 RGB 이미지와 초기 깊이 맵을 입력 받아 투명 영역의 결손이 **복원된 최종 깊이 맵** 생성
     
     > Occlusion/Contact Edge, Surface Normal : Attention 구조로 통합되어 특징 가중치 부여
     >
