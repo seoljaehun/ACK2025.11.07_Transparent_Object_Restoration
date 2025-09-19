@@ -30,7 +30,7 @@
 
 대표적인 MDE 모델(MiDaS DPT-large 384)을 활용하여 투명 물체 영역에서의 성능 한계를 실험적으로 분석
 
-그림
+![MDE Result](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/MDE%20Result.PNG)
 
 - 불투명 물체 경우, 실제 형태와 구조가 잘 반영된 깊이 값으로 예측
 - 투명 물체 경우, 물체 내부 또는 경계에서 깊이가 결손되거나 배경의 깊이 값으로 잘못 예측
@@ -39,7 +39,7 @@
 
 # 3. 알고리즘 구조
 
-그림
+![Overall Structure of the Algorithm](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/Overall%20Structure%20of%20the%20Algorithm.png)
 
 + **MDE Depth Estimation**
 
@@ -64,17 +64,17 @@
 
 MDE 모델(MiDaS DPT-large 384)을 활용해 Init Depth 생성
 
-그림
+![MDE Depth Estimation](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/MDE%20Depth%20Estimation.PNG)
 
 **2. Auxiliary Visual Cues**
 
-각각 독립된 딥러닝 서브 모델을 활용해 보조 시각 정보 추출
+각각의 독립된 딥러닝 서브 모델을 활용해 보조 시각 정보 추출
 
 - Occlusion/Contact Edge : U-Net 모델 활용, Cross-Entropy 손실 함수를 적용하여 클래스 불균형 문제 완화
 - Surface Normal : DeepLabV3+ 모델 활용, ImageNet으로 사전 학습된 ResNet-50을 백본으로, 전이 학습 수행
 - Segmentation Mask : U-Net++ 모델 활용
 
-그림
+![Auxiliary Visual Cues](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/Auxiliary%20Visual%20Cues.PNG)
 
 Occlusion Edge 88%, Contact Edge 72%의 분류 정확도, Segmentation Mask 98.21%의 픽셀 정확도, Sueface Normal 4.89°의 평균 각도 오차 달성
 
@@ -84,7 +84,9 @@ Occlusion Edge 88%, Contact Edge 72%의 분류 정확도, Segmentation Mask 98.2
 
 투명 물체의 깊이 오차(Residual)을 추정하고, 이를 Init Depth와 합산하여 복원된 깊이 맵 생성
 
-그림
+이 과정에서 보조 시각 정보 활용하여 투명 물체의 경계 및 표면 기울기 정보를 학습 과정에 반영
+
+![Restoration Model Process](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/Restoration%20Model%20Process.png)
 
 - U-Net 기반의 Encoder-Decoder 구조
 - RGB Image + Init Depth = 4채널 입력, Residual Depth Map = 1채널 출력
@@ -99,9 +101,11 @@ Occlusion Edge 88%, Contact Edge 72%의 분류 정확도, Segmentation Mask 98.2
 
 복원된 Depth를 Init Depth와 비교하고, Ablation Study를 통해 핵심 구성 요소의 효과 분석
 
-그림
+![Restoration Result](https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Image_Data/Restoration%20Result.PNG)
 
 - 제안 모델이 모든 평가지표에서 가장 우수한 성능을 보임
+- U-Net(Res)가 U-Net(Depth)보다 평가지표가 소폭 개선 -> 오차 학습 방식의 효율성 입증
+- U-Net + Attn이 U-Net(Res)보다 평가지표가 대폭 향상 -> Attention Block의 개선 효과 입증
 
 제안 모델이 기존 MDE 모델 대비 투명 영역의 결손을 현저히 감소시켰고, Ablation Study를 통해 Attention 모듈과 오차 학습 방식의 효과를 입증하였음.
 
@@ -111,4 +115,4 @@ Occlusion Edge 88%, Contact Edge 72%의 분류 정확도, Segmentation Mask 98.2
 
 - Paper : <>
 - Dataset : <https://sites.google.com/view/cleargrasp/data?authuser=0>
-- 참고 문헌 : <>
+- 참고 문헌 : <https://github.com/seoljaehun/ACK2025_Transparent_Object_Recognition/blob/main/Reference/%EC%B0%B8%EA%B3%A0%20%EB%AC%B8%ED%97%8C>
