@@ -1,7 +1,7 @@
 [1] 황승준, 박성준, 백중환, “자율주행을 위한 Self-Attention 기반 비지도 단안 카메라 영상 깊이 추정”, 한국항행학회논문지, 제27권, 제2호, pp. 182 – 189, 2023.
 [2] J. Jiang, G.  Cao, J.  Deng, T.-T. Do and S. Luo, “Robotic Perception of Transparent Objects: A Review”,  IEEE Trans. Artif. Intell., vol. 5, no. 6, pp. 2547-2567, 2024.
 [3] Y. Zhou, W. Peng, Z. Yang, H. Liu, Y. Sun, “Transparent Object Depth Completion”, arXiv preprint arXiv:2405.15299v1, 2024.
-[4]  H. Fan, H. A. Miththanthaya, Harshit, S. R. Rajan, X. Liu, Z. Zou, Y. Lin, H. Ling, “Transparent Object Tracking Benchmark”, arXiv preprint arXiv:2011.10875v2, 2021. 
+[4] H. Fan, H. A. Miththanthaya, Harshit, S. R. Rajan, X. Liu, Z. Zou, Y. Lin, H. Ling, “Transparent Object Tracking Benchmark”, arXiv preprint arXiv:2011.10875v2, 2021. 
 [5] S. Sajjan et al., "Clear Grasp: 3D Shape Estimation of Transparent Objects for Manipulation," IEEE International Conference on Robotics and Automation (ICRA), pp. 3634-3642, 2020
 [6] O. Ronneberger et al., “U-Net: Convolutional Networks for Biomedical Image Segmentation”, In Medical Image Computing and Computer-Assisted Intervention (MICCAI), vol. 9351, pp. 234-241, 2015.
 [7] Z. Zhou et al., “UNet++: A Nested U-Net Architecture for Medical Image Segmentation”, arXiv preprint arXiv:1807.10165, 2018.
