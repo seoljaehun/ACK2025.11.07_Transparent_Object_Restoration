@@ -4,7 +4,6 @@
    VScode 터미널에 다음과 같은 명령어 입력:
 ```
     git clone https://github.com/isl-org/MiDaS.git
-    cd MiDaS
 ```
 
 2. 모델 다운로드
@@ -15,12 +14,11 @@
 
 3. 패키지 설치
 
-   VScode 터미널에 다음과 같은 명령어 입력:
-```
-    pip install torch torchvision timm opencv-python matplotlib imutils
-```
+   코드 실행에 필요한 패키지 설치
 
-4. 이미지 넣기
+   ex) torch, opencv, mamatplotlib, imutils 등등
+
+5. 이미지 넣기
 
    - MiDas/input/ 폴더에 원하는 이미지 넣기
   
@@ -28,10 +26,11 @@
   
    - 파일명은 영어로 설정 (한글은 오류 발생할 수 있음)
 
-5. MDE 실행
+6. MDE 실행
 
    VScode 터미널에 다음과 같은 명령어 입력:
 ```
+    cd MiDaS
     python run.py --model_type dpt_large_384 --input_path input --output_path output
 ```
 
