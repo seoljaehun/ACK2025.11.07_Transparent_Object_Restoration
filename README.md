@@ -80,7 +80,7 @@ Occlusion Edge 88%, Contact Edge 72%의 분류 정확도, Segmentation Mask 98.2
 
 -> 깊이 복원에 활용될 수 있을 만큼 높은 정확도로 추출됨
 
-**2. Depth Restoration Model**
+**3. Depth Restoration Model**
 
 투명 물체의 깊이 오차(Residual)을 추정하고, 이를 Init Depth와 합산하여 복원된 깊이 맵 생성
 
