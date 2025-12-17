@@ -113,7 +113,7 @@ Occlusion Edge 88%, Contact Edge 72%의 분류 정확도, Segmentation Mask 98.2
 
 # 관련 자료
 
-- Paper : <>
+- Paper : <https://koreascience.kr/article/CFKO202532439676468.pub>
 - Dataset : <https://sites.google.com/view/cleargrasp/data?authuser=0>
 - 참고 문헌 : <https://github.com/seoljaehun/ACK2025.11.07_Transparent_Object_Restoration/blob/main/Reference/%EC%B0%B8%EA%B3%A0%EB%AC%B8%ED%97%8C>
 
